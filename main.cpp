@@ -21,7 +21,7 @@ int main()
         Mat ans = sec;
 
         Mat grey;
-        cvtColor(sec, grey ,COLOR_BGR2GRAY );
+        cvtColor(sec, grey , COLOR_BGR2GRAY);
         imshow("grey", grey);
         
         Mat thresh_binary;
