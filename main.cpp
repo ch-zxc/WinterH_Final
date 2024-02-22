@@ -12,7 +12,7 @@ int main()
     double heights[16];
     int t = 0;
     bool flag = false;
-    RotatedRect RA[16], R[16]; //RotatedRect就是旋转矩阵，但是他后来用的是拟合椭圆
+    RotatedRect RA[16], R[16];
 
     for(int all = 0; ; ++all){
         Mat sec;
@@ -25,8 +25,8 @@ int main()
         imshow("grey", grey);
         
         Mat thresh_binary;
-        threshold(grey, thresh_binary, 115, 255, THRESH_BINARY); //best light_borad
-        imshow("thresh_binary", thresh_binary);
+        threshold(grey, thresh_binary, 120, 255, THRESH_BINARY); //best light_borad
+        //imshow("thresh_binary", thresh_binary);
 
         //腐蚀 & 膨胀
         Mat dilatemat,dilatema;
@@ -69,7 +69,6 @@ int main()
                 double area = contourArea(contours[j]);
                 if(area < 20 || 1e3 < area) continue;
                 
-
                 double highA, distance, slop;
                 pointsA = contours[j];
 
@@ -111,6 +110,7 @@ int main()
         if(flag){
             for(int i = 0; i < t; ++i){
                 circle(ans,Point((R[i].center.x + RA[i].center.x) / 2, (R[i].center.y + RA[i].center.y) / 2), 40, Scalar(255, 255, 0), 4);
+                //putText(ans, "board", Point((R[i].center.x + RA[i].center.x) / 2, (R[i].center.y + RA[i].center.y) / 2) , FONT_HERSHEY_COMPLEX, 0.5, Scalar(255, 255, 0), 1, 4);
             }
         }
         imshow("final",ans);
