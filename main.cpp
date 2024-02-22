@@ -67,6 +67,10 @@ int main()
             for(int j = 1; j < contours.size(); ++j){
                 vector<Point> pointsA;
                 double area = contourArea(contours[j]);
+                double area2 = contourArea(contours[i]);
+                if(area / area2 > 2 || area / area2 < 0.5) continue;
+                //if(area != area2) continue;
+                if(area2 < 20 || 1e3 < area2) continue;
                 if(area < 20 || 1e3 < area) continue;
                 
                 double highA, distance, slop;
@@ -88,30 +92,37 @@ int main()
                 }
 
                 //从学长那里参考来的装甲板筛选（
-                double line_x = abs(rrect.center.x-rrectA.center.x);
-                double difference = max_height - min_height;
-                double aim =   distance/((highA+high)/2);
-                double difference3 = abs(rrect.size.width -rrectA.size.width);
-                double height = (rrect.size.height+rrectA.size.height)/200;
-                double slop_low = abs(rrect.angle + rrectA.angle)/2;
+                double line_x = abs(rrect.center.x-rrectA.center.x);//中心距离
+                double difference = max_height - min_height;//长度差异
+                double aim =   distance/((highA+high)/2);//宽度差异
+                double difference3 = abs(rrect.size.width -rrectA.size.width);//
+                double height = (rrect.size.height+rrectA.size.height)/200;//
+                double slop_low = abs(rrect.angle + rrectA.angle)/2;//
                 
-                if((aim < 3.0 - height && aim > 2.0 - height && slop <= 5 && difference <=8 && difference3 <= 5 &&(slop_low <= 30 || slop_low >=150) && line_x >0.6*distance)//小装甲板
-                    || (aim < 5.0-height && aim > 3.2 - height && slop <= 7 && difference <=15 && difference3 <= 8 && (slop_low <= 30 || slop_low >=150) && line_x >0.7*distance)){//大装甲板
+                if((aim < 3.0 - height && aim > 2.0 - height && slop <= 5 && difference <=3 && difference3 <= 5 &&(slop_low <= 30 || slop_low >=150) && line_x >0.6*distance)//小装甲板
+                    || (aim < 5.0 - height && aim > 3.2 - height && slop <= 7 && difference <=15 && difference3 <= 8 && (slop_low <= 30 || slop_low >=150) && line_x >0.7*distance)){//大装甲板
 
+                    if(difference > 6) continue;
                     heights[t] = (rrect.size.height+rrectA.size.height)/2;
                     R[t] = rrect;
                     RA[t] = rrectA;
                     t++;
                     flag = true;
                 }
+                
+                
             }
         }
 
         if(flag){
             for(int i = 0; i < t; ++i){
                 circle(ans,Point((R[i].center.x + RA[i].center.x) / 2, (R[i].center.y + RA[i].center.y) / 2), 40, Scalar(255, 255, 0), 4);
-                //putText(ans, "board", Point((R[i].center.x + RA[i].center.x) / 2, (R[i].center.y + RA[i].center.y) / 2) , FONT_HERSHEY_COMPLEX, 0.5, Scalar(255, 255, 0), 1, 4);
+                //string coordinatesText = to_string(static_cast<int>(i));
+                //putText(ans, coordinatesText, Point((R[i].center.x + RA[i].center.x) / 2, (R[i].center.y + RA[i].center.y) / 2) , FONT_HERSHEY_COMPLEX, 0.5, Scalar(255, 255, 0), 1, 4);
+                //
+                //putText();
             }
+            
         }
         imshow("final",ans);
     
