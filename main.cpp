@@ -92,16 +92,58 @@ Mat grphic_color_change(int mode, Mat imgOriginal)
     return imgBGR;
 }
 
+void pnp(RotatedRect pnp_rect)
+{
+    Point2f pnp_vertices[4];      //定义矩形的4个顶点
+	pnp_rect.points(pnp_vertices); 
+
+    vector<Point3f> Points3D;
+
+    Points3D.push_back(Point3f(-67,-27.5,0));
+    Points3D.push_back(Point3f(-67,27.5,0));
+    Points3D.push_back(Point3f(67,-27.5,0));
+    Points3D.push_back(Point3f(67,27.5,0));
+
+    //装甲板角点
+    vector<Point2f> Points2D;
+    Points2D.push_back(pnp_vertices[1]); //4
+    Points2D.push_back(pnp_vertices[2]); //3
+    Points2D.push_back(pnp_vertices[3]); //1
+    Points2D.push_back(pnp_vertices[4]); //2
+
+    //SolvePnP
+    Mat rvec = Mat::zeros(3,1,CV_64F);
+    Mat tvec = Mat::zeros(3,1,CV_64F);
+
+    Mat rvec1 = Mat::zeros(3,1,CV_64F);
+    Mat tvec1 = Mat::zeros(3,1,CV_64F);
+
+    Mat_<double> intrinstic_matrix = (Mat_<double>(3,3) << 1000, 0 ,500, 0, 1000, 300, 0, 0, 1);
+    Mat_<double> distortion_vec = (Mat_<double>(1, 5) << -0.1, 0.02, 0, 0, -0.001);
+
+
+    //CV_EXPORTS_W bool solvePnP( InputArray objectPoints, InputArray imagePoints,
+    //                       InputArray cameraMatrix, InputArray distCoeffs,
+    //                       OutputArray rvec, OutputArray tvec,
+    //                       bool useExtrinsicGuess = false, int flags = SOLVEPNP_ITERATIVE );
+    solvePnP(Points3D, Points2D, intrinstic_matrix, distortion_vec, rvec1, tvec1, false);
+    //solvePnPRansec(Points3D, Points2D, intrinsic_matrix, distortion_vec, rvec, tvec, false, SOLVEPNP_AP3P)
+    cout << rvec1 << " \n" << tvec1 << endl; 
+
+    return;
+}
+
 int main()
 {
-    int mode = 1;//mode:1=red 2=blue 
-    VideoCapture video_source("../2.mp4"); 
+    int mode = 2;//mode:1=red 2=blue 
+    VideoCapture video_source("../1.mp4"); 
 
     double heights[16];
     int t = 0;
     bool flag = false;
     RotatedRect RA[16], R[16];
     Rect ROI_final;
+    RotatedRect pnp_rect;
     int stateNum = 4; //状态量
     int measureNum = 2; //测量量
     KalmanFilter KF(stateNum, measureNum, 0); 
@@ -205,7 +247,7 @@ int main()
             // }    
             for (int j = 0; j < 4; j++)
             {
-                line(ans, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255),4);
+                line(ans, vertices[j], vertices[(j + 1) % 4], Scalar(0, 0, 255),4);
             }
             high = rrect.size.height;
   
@@ -294,6 +336,13 @@ int main()
             rectangle(ans, ROI_Rect, Scalar(0, 255, 0), 2);
             ROI_MAT = ROI_find(RA[mark].boundingRect(), R[mark].boundingRect(), dilatemat, ROI_Rect);
             ROI_final = ROI_Rect;
+
+            Point2f pnpcenter((float)ROI_Rect.x + (float)(ROI_Rect.width / 2), (float)ROI_Rect.y + (float)(ROI_Rect.height / 2));
+            Size2f pnpsize((float)ROI_Rect.width, (float)ROI_Rect.height);
+            RotatedRect pnp_rect(pnpcenter, pnpsize, 0);
+            //pnp_rect = boundingRect(ROI_Rect);
+            pnp(pnp_rect);
+            
             if(!ROI_MAT.empty()){
                 ROI_time++;
                 ROI_not_time = 0;
