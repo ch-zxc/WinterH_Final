@@ -24,22 +24,6 @@ Mat ROI_find(Rect RA, Rect R, Mat dilatemat, Rect ROI)
 
     return ROI_Mat;
 }
- 
-// int main()
-// {
-// 	Mat image(200, 200, CV_8UC3, Scalar(0));
-// 	RotatedRect rRect(Point2f(100, 100), Size2f(100, 50), 30);
- 
-// 	Point2f vertices[4];      //定义矩形的4个顶点
-// 	rRect.points(vertices);   //计算矩形的4个顶点
-// 	for (int i = 0; i < 4; i++)
-// 		line(image, vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0));
- 
-// 	Rect brect = rRect.boundingRect(); //返回包含旋转矩形的最小矩形
-// 	rectangle(image, brect, Scalar(255, 0, 0));
-// 	imshow("rectangles", image);
-// 	waitKey(0);
-// }
 
 void KFilter(Point RA, Point R , Mat measurement, KalmanFilter KF)
 {
@@ -97,7 +81,7 @@ Mat grphic_color_change(int mode, Mat imgOriginal)
                 imgBGR.at<Vec3b>(i, j)[0] = 0;   // B通道
                 imgBGR.at<Vec3b>(i, j)[1] = 0;   // G通道
                 imgBGR.at<Vec3b>(i, j)[2] = 0;   // R通道
-                printf("yes %d %d\n",i ,j);
+                //printf("yes %d %d\n",i ,j);
             }
         }
     }
@@ -110,13 +94,14 @@ Mat grphic_color_change(int mode, Mat imgOriginal)
 
 int main()
 {
-    int mode = 2;//mode:1=red 2=blue 
-    VideoCapture video_source("../1.mp4"); 
+    int mode = 1;//mode:1=red 2=blue 
+    VideoCapture video_source("../2.mp4"); 
 
     double heights[16];
     int t = 0;
     bool flag = false;
     RotatedRect RA[16], R[16];
+    Rect ROI_final;
     int stateNum = 4; //状态量
     int measureNum = 2; //测量量
     KalmanFilter KF(stateNum, measureNum, 0); 
@@ -133,11 +118,11 @@ int main()
     setIdentity(KF.errorCovPost, Scalar::all(1));//P后验误差估计协方差矩阵，初始化为单位阵
     randn(KF.statePost, Scalar::all(0), Scalar::all(0.1));//初始化状态为随机值 其实就是x_0
     
-    int ROI_time = 0;
+    int ROI_time = 0, ROI_not_time = 0;
     bool ROI_mode = false;
 
     for(int all = 0; ; ++all){
-        Mat sec, ROI_MAT;
+        Mat sec, ROI_MAT, ROI_Back_MAT;
         int mark;
         video_source >> sec;    
         imshow("sec",sec);
@@ -163,24 +148,28 @@ int main()
         imshow("dilatemat",dilatemat);
         
         if(ROI_mode){
-            Mat ROI_change = source_Mat;
-
-            // for(int i = max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 50, 0); i < min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols); ++i){
-            //     for(int j = max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 50, 0); j < min(abs(RA[mark].boundingRect().y - R[mark].boundingRect().y) + max(RA[mark].boundingRect().height, R[mark].boundingRect().height) + 100, dilatemat.rows); ++j){
-            //         ROI_change.at<uchar>(i, j) = dilatemat.at<uchar>(i, j);
-            //         bool isWhitePixel = (dilatemat.at<uchar>(i, j) >= 250);
+            Mat ROI_change = source_Mat.clone();
+            
+            for(int i = ROI_final.x; i < ROI_final.x + ROI_final.width; ++i){
+                for(int j = ROI_final.y; j < ROI_final.y + ROI_final.height; ++j){
+                    ROI_change.at<uchar>(j, i) = dilatemat.at<uchar>(j, i);
+                    bool isWhitePixel = (dilatemat.at<uchar>(j, i) >= 250);
         
-            //         if (isWhitePixel) {
-            //             printf("ROI yes %d %d\n",i ,j);
-            //         }
-            //     }
-            // }
-            Mat ROI_1 = dilatemat(Range(max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 50, 0), min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols)), 
-                                Range(max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 50, 0), min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols)));
+                    // if (isWhitePixel) {
+                    //     printf("ROI yes %d %d\n",j ,i);
+                    // }
 
-            ROI_1.copyTo(ROI_change);
+                    
+                }
+            }
+            // Mat ROI_1 = dilatemat(Range(max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 50, 0), min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols)), 
+            //                     Range(max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 50, 0), min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols)));
 
-            dilatemat = ROI_change;
+            // ROI_1.copyTo(ROI_change);
+            
+
+            dilatemat = ROI_change.clone();
+            
         }
         imshow("dilatemat after ROI",dilatemat);
 
@@ -274,7 +263,7 @@ int main()
 
         double maxx = 0;
         
-        for(int i = 0;i < t;i++){     //多个目标存在，打更近装甲板
+        for(int i = 0; i < t;i++){     //多个目标存在，打更近装甲板
             if(heights[i]  >= maxx){
                 maxx = heights[i];
                 mark = i;
@@ -297,28 +286,35 @@ int main()
         
             KFilter(R[mark].center, RA[mark].center, measurement, KF);
             
-            Rect ROI_Rect(max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 50, 0), 
-            max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 50, 0), 
-            min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 100, dilatemat.cols), 
-            min(abs(RA[mark].boundingRect().y - R[mark].boundingRect().y) + max(RA[mark].boundingRect().height, R[mark].boundingRect().height) + 100, dilatemat.rows));
+            Rect ROI_Rect(max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 25, 5), 
+                        max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 25, 5), 
+                        min(abs(RA[mark].boundingRect().x - R[mark].boundingRect().x) + max(RA[mark].boundingRect().width, R[mark].boundingRect().width) + 50, dilatemat.cols - max(min(RA[mark].boundingRect().x, R[mark].boundingRect().x) - 25, 5) - 5), 
+                        min(abs(RA[mark].boundingRect().y - R[mark].boundingRect().y) + max(RA[mark].boundingRect().height, R[mark].boundingRect().height) + 50, dilatemat.rows - max(min(RA[mark].boundingRect().y, R[mark].boundingRect().y) - 25, 5) - 5));
+
+            rectangle(ans, ROI_Rect, Scalar(0, 255, 0), 2);
             ROI_MAT = ROI_find(RA[mark].boundingRect(), R[mark].boundingRect(), dilatemat, ROI_Rect);
-            
+            ROI_final = ROI_Rect;
             if(!ROI_MAT.empty()){
                 ROI_time++;
+                ROI_not_time = 0;
                 ROI_mode = true;
-                if(ROI_time > 7){
+                if(ROI_time > 15){
                     ROI_mode = false;
                     ROI_time = 0;
                 }
             }else{
-                ROI_time--;
-                if(ROI_time <= 0){
+                ROI_not_time++;
+                ROI_time = 0;
+                if(ROI_not_time >= 2){
                     ROI_mode = false;
+                    ROI_not_time = 0;
                     ROI_time = 0;
                 }
             }
-
+            printf("ROItime %d\n", ROI_time);
             imshow("ROI", ROI_MAT);
+        }else{
+            ROI_mode = 0;
         }
         imshow("final",ans);
     
